@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Sellable Wi‑Fi time packs (UGX amounts as integers).
+model Package {
+  id             String    @id @default(cuid())
+  label          String
+  priceUgx       Int
+  durationHours  Int
+  active         Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  payments       Payment[]
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+/// One MoMo (or mock) attempt for a package.
+model Payment {
+  id           String        @id @default(cuid())
+  reference    String        @unique /// Idempotent ref sent to provider / shown to user
+  packageId    String
+  package      Package       @relation(fields: [packageId], references: [id])
+  phone        String        /// MSISDN digits (normalized)
+  amountUgx    Int
+  status       PaymentStatus @default(PENDING)
+  providerNote String?
+  /// Optional: captive portal may pass client MAC for router pairing.
+  clientMac    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  session      AccessSession?
+}
+
+/// Granted access after successful payment.
+model AccessSession {
+  id          String   @id @default(cuid())
+  paymentId   String   @unique
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+  macAddress  String?
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}
