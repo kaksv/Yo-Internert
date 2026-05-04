@@ -34,7 +34,18 @@ export default function App() {
         setPackages(p);
         if (p[0]) setSelectedId(p[0].id);
       })
-      .catch(() => setError("Could not load plans. Check API connection."))
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : "";
+        if (msg === "missing_vite_api_url") {
+          setError(
+            "VITE_API_URL is not set for this build. In Vercel → Project → Settings → Environment Variables, add VITE_API_URL = your Render API base URL (e.g. https://hotspot-api.onrender.com), then Redeploy."
+          );
+        } else {
+          setError(
+            "Could not load plans. Check: (1) Vercel has VITE_API_URL pointing at Render, (2) On Render, CORS_ORIGIN includes this Vercel URL, (3) The API is running. Open the Network tab and look for /api/packages."
+          );
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -155,11 +166,29 @@ export default function App() {
           </p>
         </header>
 
+        {error && (
+          <p
+            className="mb-8 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm leading-relaxed text-red-200"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
+
         <section aria-label="Plans">
           <p className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
             Plans
           </p>
           <div className="grid gap-3">
+            {packages.length === 0 && !error && (
+              <p className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-4 text-sm text-zinc-400">
+                No plans returned from the API. If the API is healthy, seed the database (e.g.{" "}
+                <code className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">
+                  npx prisma db seed
+                </code>{" "}
+                against your production database).
+              </p>
+            )}
             {packages.map((p) => {
               const active = p.id === selectedId;
               return (
@@ -211,15 +240,6 @@ export default function App() {
             You&apos;ll approve the prompt on that wallet when payment mode is live.
           </p>
         </section>
-
-        {error && (
-          <p
-            className="mt-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
-            role="alert"
-          >
-            {error}
-          </p>
-        )}
 
         {pendingRef && (
           <p className="mt-6 text-center text-sm text-amber-200/90">

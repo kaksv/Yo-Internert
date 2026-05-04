@@ -1,5 +1,7 @@
-const base =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";
+/** Base URL for the Render API (no trailing slash). Required in production builds. */
+export function getApiBaseUrl(): string {
+  return (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+}
 
 export type PackageRow = {
   id: string;
@@ -9,7 +11,12 @@ export type PackageRow = {
 };
 
 export async function fetchPackages(): Promise<PackageRow[]> {
-  const r = await fetch(`${base}/api/packages`);
+  const root = getApiBaseUrl();
+  if (import.meta.env.PROD && !root) {
+    throw new Error("missing_vite_api_url");
+  }
+  const url = `${root}/api/packages`;
+  const r = await fetch(url);
   if (!r.ok) throw new Error("packages_failed");
   const data = (await r.json()) as { packages: PackageRow[] };
   return data.packages;
@@ -35,7 +42,8 @@ export async function initiatePayment(body: {
   phone: string;
   clientMac?: string;
 }): Promise<InitiateResult> {
-  const r = await fetch(`${base}/api/payments/initiate`, {
+  const root = getApiBaseUrl();
+  const r = await fetch(`${root}/api/payments/initiate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -54,7 +62,8 @@ export async function pollPayment(reference: string): Promise<{
   expiresAt?: string;
   durationHours?: number;
 }> {
-  const r = await fetch(`${base}/api/payments/${reference}/status`);
+  const root = getApiBaseUrl();
+  const r = await fetch(`${root}/api/payments/${reference}/status`);
   if (!r.ok) throw new Error("status_failed");
   return r.json();
 }
