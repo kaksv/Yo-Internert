@@ -6,12 +6,13 @@ databases:
   - name: hotspot-db
     databaseName: hotspot
     user: hotspot
+    region: oregon
 
 services:
   - type: web
     name: hotspot-api
     runtime: node
-    region: frankfurt
+    region: oregon
     plan: free
     rootDir: backend
     # Migrations run at start, not during build — Render build containers often cannot reach private Postgres (P1001).
